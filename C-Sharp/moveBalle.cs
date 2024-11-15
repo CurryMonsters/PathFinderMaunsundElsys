@@ -44,22 +44,24 @@ public class moveBalle : MonoBehaviour
         foamSystem = foamObj.GetComponent<ParticleSystem>().emission;
         cameraPos = mainCamera.transform.position;
         cameraRot = mainCamera.transform.rotation;
-
     }
+    
 
-    // Update is called once per frame
+    // Den henter nye koordinater fra UDP-mottaket,
+    // oppdaterer agentens posisjon og rotasjon, sjekker om en path eksisterer, og tegner den ved behov.
     void Update()
     {
         string[] myCords = udpReceive.cords;
         float posX = float.Parse(myCords[0], CultureInfo.InvariantCulture.NumberFormat) * stock;
         float posY = float.Parse(myCords[1], CultureInfo.InvariantCulture.NumberFormat) * stock;
-
-        if(isMoveAble){
-            desPos = new UnityEngine.Vector3(posX,1,posY);
+        
+        if (isMoveAble)
+        {
+            desPos = new UnityEngine.Vector3(posX, 1, posY);
             destinationMarker.transform.position = desPos;
 
             float desRot = float.Parse(myCords[2], CultureInfo.InvariantCulture.NumberFormat);
-            destinationMarker.transform.rotation = UnityEngine.Quaternion.Euler(0, desRot * Mathf.Rad2Deg,0);
+            destinationMarker.transform.rotation = UnityEngine.Quaternion.Euler(0, desRot * Mathf.Rad2Deg, 0);
             
             myNavMeshAgent.ResetPath();
 
@@ -67,35 +69,45 @@ public class moveBalle : MonoBehaviour
             float myPosY = float.Parse(myCords[4], CultureInfo.InvariantCulture.NumberFormat) * stock;
             float rot = float.Parse(myCords[5], CultureInfo.InvariantCulture.NumberFormat);
 
-            transform.rotation = UnityEngine.Quaternion.Euler(0, rot * Mathf.Rad2Deg,0);
-            transform.position = new UnityEngine.Vector3(myPosX,1,myPosY);
+            transform.rotation = UnityEngine.Quaternion.Euler(0, rot * Mathf.Rad2Deg, 0);
+            transform.position = new UnityEngine.Vector3(myPosX, 1, myPosY);
             mainCamera.transform.position = cameraPos;
             mainCamera.transform.rotation = cameraRot;
             mainCamera.GetComponent<CameraOrbiter>().rotateSpeed = 0;
         }
 
-        if(myNavMeshAgent.hasPath){
+        if (myNavMeshAgent.hasPath)
+        {
             navHasPath = 1;
-        }else{
+        }
+        else
+        {
             navHasPath = 0;
         }
 
-        if(myNavMeshAgent.hasPath && drawnPath == false){
-            DrawPath();
+        if (myNavMeshAgent.hasPath && drawnPath == false)
+        {
+            DrawPath(); // Tegner pathen når agenten har en path å følge.
             drawnPath = true;
         }
-        foamSystem.rateOverTime = navHasPath* foamMultiplier + 30;
+        foamSystem.rateOverTime = navHasPath * foamMultiplier + 30;
     }
 
-    public void startSim(){
+    public void startSim()
+    {
+        // Starter simuleringen ved å deaktivere fri bevegelse øyer, båten og målet og setter destinasjonen for NavMeshAgent.
         isMoveAble = false;
         myNavMeshAgent.SetDestination(desPos);
         mainCamera.GetComponent<CameraOrbiter>().rotateSpeed = 6;
-        if(!myNavMeshAgent.hasPath) drawnPath = false;
+
+        if (!myNavMeshAgent.hasPath) drawnPath = false;
     }
 
-    public void resimulate(){
-        if(ReachedDestinationOrGaveUp()){
+    public void resimulate()
+    {
+        // Reaktiverer fri bevegelse og tilbakestiller pathen hvis agenten har nådd målet eller gitt opp.
+        if (ReachedDestinationOrGaveUp())
+        {
             isMoveAble = true;
             myLineRenderer.positionCount = 0;
         }
@@ -103,10 +115,10 @@ public class moveBalle : MonoBehaviour
 
     public bool ReachedDestinationOrGaveUp()
     {
-
+        // Sjekker om NavMeshAgent har nådd målet eller gitt opp navigasjonen.
         if (!myNavMeshAgent.pathPending)
         {  
-            if (myNavMeshAgent.remainingDistance <=  myNavMeshAgent.stoppingDistance)
+            if (myNavMeshAgent.remainingDistance <= myNavMeshAgent.stoppingDistance)
             {
                 if (!myNavMeshAgent.hasPath || myNavMeshAgent.velocity.sqrMagnitude == 0f)
                 {
@@ -118,18 +130,24 @@ public class moveBalle : MonoBehaviour
         return false;
     }
 
-    void DrawPath(){
+    //visuell representasjon av pathen til båten
+    void DrawPath()
+    {
+        // Tegner pathen som NavMeshAgent følger.
         int pathLength = myNavMeshAgent.path.corners.Length;
-        myLineRenderer.positionCount = pathLength;
-        myLineRenderer.SetPosition(0,transform.position);
+        myLineRenderer.positionCount = pathLength; // Setter antall punkter i linjen.
+        myLineRenderer.SetPosition(0, transform.position); // Startpunkt for linjen.
 
-        if(pathLength < 2) return;
+        if (pathLength < 2) return;
 
         for (int i = 0; i < pathLength; i++)
         {
-            UnityEngine.Vector3 pointPos = new UnityEngine.Vector3(myNavMeshAgent.path.corners[i].x,myNavMeshAgent.path.corners[i].y + pathHeight,myNavMeshAgent.path.corners[i].z);
-            myLineRenderer.SetPosition(i,pointPos);
+            // Plasserer hvert punkt langs pathen
+            UnityEngine.Vector3 pointPos = new UnityEngine.Vector3(
+                myNavMeshAgent.path.corners[i].x,
+                myNavMeshAgent.path.corners[i].y + pathHeight,
+                myNavMeshAgent.path.corners[i].z);
+            myLineRenderer.SetPosition(i, pointPos);
         }
     }
-    
 }
